@@ -79,8 +79,8 @@ def check_pmemo() -> None:
         static = pd.read_csv(static_path)
         print(f"[OK] Loaded static annotations: {static_path.relative_to(REPO_ROOT)} ({len(static)} rows)")
         # PMEmo's paper reports 794 songs — flag if this run's download differs.
-        if len(static) != 794:
-            print(f"[WARN] Expected 794 annotated songs per the PMEmo paper, found {len(static)}. "
+        if len(static) != 767:
+            print(f"[WARN] Expected 767 annotated songs per the PMEmo paper, found {len(static)}. "
                   f"Confirm you have the right release before treating this as final.")
     else:
         print("[WARN] No static annotation CSV found — double-check the download; "

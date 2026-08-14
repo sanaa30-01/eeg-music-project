@@ -1,0 +1,24 @@
+# Environments
+.venv/
+env/
+__pycache__/
+*.pyc
+
+# Raw / large data — never commit audio or raw EEG
+data_raw/**
+!data_raw/README_access.md
+!data_raw/.gitkeep
+!data_raw/ds002721_stimulus_audit.csv
+data_interim/**
+!data_interim/.gitkeep
+data_processed/**
+!data_processed/.gitkeep
+
+# Results (regenerate via pipeline; keep small summary tables if desired)
+results/**
+!results/.gitkeep
+
+# OS / editor
+.DS_Store
+.ipynb_checkpoints/
+*.log 

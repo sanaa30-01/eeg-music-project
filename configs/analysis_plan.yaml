@@ -1,0 +1,93 @@
+# Preregistered analysis plan.
+# Agree and freeze this in Days 1-3, before any modeling. Changes after
+# freezing should be logged, not silently edited.
+
+project:
+  title: "From Music Audio to Felt Affect: Auditing Audio-Only Emotion Predictions Against EEG and Self-Reports"
+  seed: 2026
+  frozen_date: null   # fill in once the team agrees this file is final
+
+primary_research_question: >
+  Can an audio-only model trained on an accessible induced-emotion music
+  dataset predict population-level valence and arousal ratings for separate
+  music excerpts, and do those predictions agree with independent
+  self-report and EEG evidence?
+
+definitions:
+  perceived_emotion: "Emotion a listener judges the music to express or convey."
+  induced_emotion: "Emotion the listener actually reports feeling while or after hearing the music."
+  population_level_prediction: "Estimated average response to an excerpt across the sample."
+  personalised_prediction: "Estimated response conditional on listener characteristics (exploratory only)."
+
+hypotheses:
+  H1_stage_a:
+    statement: >
+      Predeclared trial-level EEG spectral features (relative theta/alpha/
+      beta/gamma power over frontal/central/parietal regions, plus frontal
+      alpha asymmetry) will predict participant-reported valence-like and
+      arousal-like ratings above a participant-mean-only baseline, under
+      leave-one-participant-out evaluation.
+    context: "Prior combined neural+acoustic work reported correlations up to ~0.7 (Daly et al. 2015) — context, not a target to beat."
+  H2_stage_b:
+    statement: >
+      On PMEmo, audio features will predict held-out clip-level induced
+      arousal more reliably than valence (arousal has stronger direct
+      acoustic correlates: energy, tempo, onset density, spectral flux).
+  H3_bridge:
+    statement: >
+      The Stage B model (fit only on PMEmo) will produce predictions for
+      ds002721 clips that correlate positively with clip-level mean
+      ds002721 valence-like and arousal-like self-report composites.
+      Secondary: model-predicted arousal will associate with EEG features
+      that also relate to self-reported arousal.
+    condition: "Valid only if Gate A recovers correctly-matched ds002721 audio. No EEG is used at audio-model inference time."
+
+primary_outcomes:
+  - name: valence_like_composite
+    ds002721_source_items: [pleasant, happy, tender]   # confirm/adjust with team before freezing
+  - name: arousal_like_composite
+    ds002721_source_items: [energetic, tense, angry, fearful]  # confirm/adjust with team before freezing
+
+secondary_outcomes:
+  - pleasant
+  - energetic
+  - tense
+  - angry
+  - fearful
+  - happy
+  - sad
+  - tender
+
+exclusions:
+  - "No random row-level train/test splits — always participant-aware and/or song-aware."
+  - "No PCA, ICA-derived components, connectivity matrices, or thousands of time-frequency pixels in the MVP."
+  - "No dichotomizing ratings for the primary analysis (quadrant split allowed only as an explicit, labeled fallback)."
+  - "No training or tuning the Stage B model on ds002721 outcomes at any point."
+  - "No combining PMEmo official audio descriptors with the independently-extracted librosa set without labeling which is which."
+
+multiple_comparisons:
+  primary_outcomes_count: 2
+  secondary_outcomes_correction: "Benjamini-Hochberg FDR across the 8 secondary self-report outcomes."
+
+claim_language:
+  allowed: >
+    "An audio-only model trained on PMEmo's crowd-aggregated induced
+    valence-arousal labels showed [degree of] agreement with
+    population-average induced-affect ratings in a separate EEG
+    music-listening dataset, and these ratings had [degree of] association
+    with a predeclared set of EEG spectral features."
+  forbidden:
+    - "The model predicts what any individual will feel."
+    - "Audio features cause EEG changes."
+    - "A song has one true emotional effect."
+    - "A model trained on perceived emotion predicts induced emotion."
+    - "EEG validates an emotion model clinically or universally."
+
+gate_a_decision_rule:
+  threshold_clips_recovered: 32
+  total_clips: 40
+  if_pass: "Proceed with direct Stage A <-> Stage B bridge as planned."
+  if_fail: "Keep Stage A and Stage B independent; downgrade bridge to construct-level comparison, not direct model-to-EEG validation."
+  decision: null        # fill in: pass / fail
+  clips_recovered: null # fill in: integer
+  decided_by: null      # fill in: names, date

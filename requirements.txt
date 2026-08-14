@@ -1,0 +1,28 @@
+# Pip-only equivalent of environment.yml, for students not using conda.
+# Pin exact versions here once the environment is frozen (Day 1 task) —
+# e.g. run `pip freeze > requirements.lock.txt` after first successful setup
+# and commit that alongside this file.
+
+numpy
+scipy
+pandas
+pyarrow
+scikit-learn
+statsmodels
+matplotlib
+seaborn
+pingouin
+joblib
+pyyaml
+tqdm
+librosa
+soundfile
+audioread
+jupyterlab
+mne
+mne-bids
+openneuro-py
+
+# Optional:
+# autoreject
+# neurokit2

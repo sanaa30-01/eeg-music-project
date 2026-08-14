@@ -1,0 +1,30 @@
+name: music-eeg-affect
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - pandas
+  - pyarrow
+  - scikit-learn
+  - statsmodels
+  - matplotlib
+  - seaborn
+  - pingouin
+  - joblib
+  - pyyaml
+  - tqdm
+  - librosa
+  - soundfile
+  - audioread
+  - jupyterlab
+  - pip
+  - pip:
+      - mne
+      - mne-bids
+      - openneuro-py
+      # Optional — uncomment if/when needed (see README for when):
+      # - autoreject       # automated EEG epoch rejection, only if ICA route is chosen
+      # - neurokit2        # only if it materially simplifies EEG/EDA QC

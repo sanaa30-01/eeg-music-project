@@ -1,0 +1,42 @@
+# Split protocol per analysis. Never mix these — see README "no random
+# row-level splits" exclusion.
+
+pmemo_internal_model_selection:
+  method: GroupKFold
+  n_splits: 5
+  group_by: song_or_clip_id
+  note: "If dynamic (0.5s) windows are used, ALL windows from a song must be grouped together — no window-level leakage across folds."
+
+pmemo_final_estimate:
+  method: nested_grouped_cv
+  outer_splits: 5
+  inner: "hyperparameter tuning only, never touches outer test fold"
+
+ds002721_stage_a:
+  primary:
+    method: leave_one_participant_out
+  secondary:
+    method: leave_one_clip_out
+    group_by: clip_id
+
+bridge_analysis:
+  method: clip_level_aggregation
+  aggregate_over: ds002721_participants
+  constraint: "Stage B (PMEmo) model is never trained, tuned, or recalibrated on ds002721 outcomes."
+
+uncertainty:
+  bootstrap:
+    n_resamples: 2000
+    resample_by:
+      pmemo: song
+      bridge: clip
+  permutation_test:
+    n_permutations: 1000
+    applies_to: bridge_correlations
+
+model_selection_rule:
+  primary_metric: concordance_correlation_coefficient
+  tie_breaker: rmse
+  note: "Lock the PMEmo model by this rule BEFORE generating ds002721 predictions."
+
+random_seed: 2026

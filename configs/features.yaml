@@ -1,0 +1,55 @@
+# Predeclared feature set. Edit here, not in the scripts.
+
+eeg:
+  channels:
+    frontal: [Fp1, Fp2, F3, F4, F7, F8]
+    central: [C3, C4, Cz]
+    parietal: [P3, P4, Pz]
+  filtering:
+    notch_hz: null          # set to 50 or 60 only after inspecting the power spectrum
+    bandpass_hz: [1, 45]
+    reference: average       # confirm montage / bad channels first
+  epoching:
+    primary_window_sec: [1, 11]   # relative to music onset; excludes first second (onset transient) and the rating interval
+    baseline_correction: false     # optional; if true, use the pre-music fixation interval and document it
+  artefact_rejection:
+    method: amplitude_threshold   # conservative epoch rejection; ICA only if a student can inspect components responsibly
+    reject_uv: 100
+    report_retained_trials: true  # per participant AND per clip
+  psd:
+    method: welch
+    window_sec: 2
+    overlap_pct: 50
+  bands_hz:
+    theta: [4, 7]
+    alpha: [8, 12]
+    beta: [13, 30]
+    gamma: [30, 45]   # optional — avoid treating 45-80Hz as gamma unless muscle artefacts are controlled
+  derived:
+    - name: region_mean_power
+      regions: [frontal, central, parietal]
+      bands: [theta, alpha, beta]
+    - name: frontal_alpha_asymmetry
+      formula: "log(alpha_power_F4) - log(alpha_power_F3)"
+      sign_convention: "positive = greater relative right frontal alpha (i.e. greater left frontal activation) — confirm and document before analysis"
+  max_predictors_per_outcome: 13
+
+audio:
+  sample_rate_hz: 22050
+  channels: mono
+  clip_level_stats: [mean, std, p10, p90]
+  features:
+    - mfcc_20_plus_deltas
+    - rms_energy
+    - tempo_and_beat_strength
+    - spectral_centroid
+    - spectral_bandwidth
+    - spectral_rolloff
+    - spectral_contrast
+    - spectral_flatness
+    - spectral_flux
+    - chroma_and_tonal_centroid
+    - zero_crossing_rate
+  standardization: training_fold_means_only   # never fit scaler on test fold
+  output_file: data_processed/audio_features_pmemo.parquet
+  key: track_id

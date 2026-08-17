@@ -22,9 +22,9 @@ claim" below before writing anything up.
 
 ## Team roles (adjust names)
 
-- **Person A** — pipeline/ML: repo, environment, PMEmo audio modeling, stats,
+- pipeline/ML: repo, environment, PMEmo audio modeling, stats,
   reproducibility.
-- **Person B** — EEG/cognitive science: ds002721 methods, EEG QC, self-report
+- EEG/cognitive science: ds002721 methods, EEG QC, self-report
   construct definitions, interpretation and write-up.
 - Joint: the Day 4 audio-audit gate decision, model selection sign-off,
   limitations section.

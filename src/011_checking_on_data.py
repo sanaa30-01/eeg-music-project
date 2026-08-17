@@ -1,7 +1,7 @@
 import pandas as pd
 from pathlib import Path
 
-files = sorted(Path("data_raw/ds002721/sub-02/eeg").glob("*events.tsv"))
+files = sorted(Path("data_raw/ds002721/sub-28/eeg").glob("*events.tsv"))
 total = 0
 for f in files:
     df = pd.read_csv(f, sep="\t")

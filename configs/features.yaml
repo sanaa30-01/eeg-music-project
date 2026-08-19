@@ -6,7 +6,7 @@ eeg:
     central: [C3, C4, Cz]
     parietal: [P3, P4, Pz]
   filtering:
-    notch_hz: null          # set to 50 or 60 only after inspecting the power spectrum
+    notch_hz: 50          # set to 50 or 60 only after inspecting the power spectrum
     bandpass_hz: [1, 45]
     reference: average       # confirm montage / bad channels first
   epoching:

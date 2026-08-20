@@ -5,8 +5,9 @@ eeg:
     frontal: [Fp1, Fp2, F3, F4, F7, F8]
     central: [C3, C4, Cz]
     parietal: [P3, P4, Pz]
+  bad_channels: [T3, T4]
   filtering:
-    notch_hz: 50          # set to 50 or 60 only after inspecting the power spectrum
+    notch_hz: 50          
     bandpass_hz: [1, 45]
     reference: average       # confirm montage / bad channels first
   epoching:
@@ -15,6 +16,7 @@ eeg:
   artefact_rejection:
     method: amplitude_threshold   # conservative epoch rejection; ICA only if a student can inspect components responsibly
     reject_uv: 100
+    exclude_from_check: [FP1, FP2]
     report_retained_trials: true  # per participant AND per clip
   psd:
     method: welch

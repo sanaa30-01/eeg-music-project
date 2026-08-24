@@ -2,7 +2,7 @@
 
 eeg:
   channels:
-    frontal: [Fp1, Fp2, F3, F4, F7, F8]
+    frontal: [FP1, FP2, F3, F4, F7, F8]
     central: [C3, C4, Cz]
     parietal: [P3, P4, Pz]
   bad_channels: [T3, T4]
@@ -35,6 +35,9 @@ eeg:
       formula: "log(alpha_power_F4) - log(alpha_power_F3)"
       sign_convention: "positive = greater relative right frontal alpha (i.e. greater left frontal activation) — confirm and document before analysis"
   max_predictors_per_outcome: 13
+  participant_exclusions:
+    sub-29: "0/40 epochs survived artefact rejection (100% loss) -- excluded entirely from Stage A and the bridge analysis"
+    sub-02: "3/36 epochs survived artefact rejection (91.7% loss) -- retained with flag; treat any bridge clips where sub-02 is the sole or majority rater with extra caution given the severity of data loss"
 
 audio:
   sample_rate_hz: 22050

@@ -14,9 +14,11 @@ data_interim/**
 data_processed/**
 !data_processed/.gitkeep
 
-# Results (regenerate via pipeline; keep small summary tables if desired)
+# Results -- keep small summary CSVs (they're tiny and human-readable);
+# large regenerable outputs (figures, model files) stay ignored
 results/**
 !results/.gitkeep
+!results/*.csv 
 
 # OS / editor
 .DS_Store

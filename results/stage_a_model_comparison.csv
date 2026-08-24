@@ -1,0 +1,9 @@
+outcome,model,mae,alpha
+valence,participant-mean baseline,1.149423966143371,
+valence,"ridge (alpha=1.0, untuned)",1.2288956592910647,1.0
+valence,"ridge (tuned, grid to 100)",1.209757788848916,100.0 (all folds)
+valence,"ridge (tuned, grid to 5000)",1.1985569391563944,5000.0 (all folds)
+arousal,participant-mean baseline,0.9190723624568283,
+arousal,"ridge (alpha=1.0, untuned)",1.1086442792991273,1.0
+arousal,"ridge (tuned, grid to 100)",1.0866427196914168,100.0 (all folds)
+arousal,"ridge (tuned, grid to 5000)",1.0931231197685545,"scattered, see note"

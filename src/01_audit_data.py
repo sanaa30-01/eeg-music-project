@@ -126,7 +126,7 @@ def main() -> None:
     parser.add_argument("--check-pmemo", action="store_true")
     parser.add_argument("--init-ds002721-audit", action="store_true",
                          help="Build the ds002721 stimulus audit CSV from real events.tsv data.")
-    args = parser.parse_args()
+    args = parser.parse_args(["--check-pmemo"])
 
     if not (args.check_pmemo or args.init_ds002721_audit):
         parser.print_help()

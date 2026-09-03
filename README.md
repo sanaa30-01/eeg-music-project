@@ -13,6 +13,12 @@ See `configs/analysis_plan.yaml` for the full preregistration: hypotheses,
 primary/secondary outcomes, exclusions, and the exact claim language this
 project is allowed to make.
 
+**Current implemented scope:** PMEmo audio feature extraction and PMEmo static
+valence/arousal model fitting are complete. ds002721, EEG integration, and the
+bridge analysis are deferred. See
+[`PMEMO_STAGES_5_6_DELIVERABLES.md`](PMEMO_STAGES_5_6_DELIVERABLES.md) for the
+concise handoff and exact retained artifacts.
+
 **Scope, one line:** this project does not claim music has a universal
 emotional effect, that perceived emotion equals felt emotion, or that EEG
 "validates" an emotion model. Its strongest possible conclusion is about
@@ -96,8 +102,8 @@ Week 1 deliverable.
 02_build_ds002721_trials.py One row per participant × clip, from BIDS events/ratings
 03_preprocess_eeg.py        Filter, epoch, artefact-reject (see configs/features.yaml)
 04_extract_eeg_features.py  Predeclared band-power + frontal asymmetry features
-05_extract_audio_features.py PMEmo (and, if Gate A passes, ds002721) audio features
-06_train_pmemo_models.py    Ridge / SVR, grouped nested CV, model selection by CCC
+05_extract_audio_features.py PMEmo audio features (ds002721 currently deferred)
+06_train_pmemo_models.py    Dummy/Ridge/Elastic Net/SVR; optional Random Forest
 07_stage_a_models.py        EEG → self-report regression, leave-one-participant-out
 08_bridge_analysis.py       Apply frozen PMEmo model to ds002721 clips; compare
 09_bootstrap_metrics.py     Bootstrap CIs, permutation tests, FDR correction
@@ -126,10 +132,19 @@ Not:
 
 ## Status
 
-- [ ] Repo + environment set up
-- [ ] Analysis plan agreed (`configs/analysis_plan.yaml`)
-- [ ] Gate A audit complete — go/no-go decided
-- [ ] Stage A (EEG) models fit
-- [ ] Stage B (PMEmo) models fit and frozen
+- [x] Repository structure and base environment files created
+- [ ] Environment version-pinned and analysis plan frozen (`configs/analysis_plan.yaml`)
+- [ ] Gate A audit complete — mapping/checksums/timing verified and go/no-go decided
+- [ ] Stage A (EEG) models final — an initial provisional run exists, but specification corrections remain
+- [x] Stage B (PMEmo) features and models fit, validated, and frozen
 - [ ] Bridge analysis complete
 - [ ] Report drafted
+
+The mathematics/programming work, current evidence, known specification
+corrections, and next executable milestones are tracked in
+[`MODEL_FITTING_PROGRESS.md`](MODEL_FITTING_PROGRESS.md). Update that file as
+milestones change rather than marking a script complete merely because it
+exists.
+
+The compact Stage 5–6 deliverable inventory and reproduction commands are in
+[`PMEMO_STAGES_5_6_DELIVERABLES.md`](PMEMO_STAGES_5_6_DELIVERABLES.md).

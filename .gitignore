@@ -19,8 +19,15 @@ data_processed/**
 results/**
 !results/.gitkeep
 !results/*.csv 
+# Quick/integration-test CSVs are reproducible scratch artifacts. Keep the test
+# source code, but do not let repeated validation runs clutter version control.
+results/*_test*.csv
 
 # OS / editor
 .DS_Store
 .ipynb_checkpoints/
 *.log 
+
+# Local rendering and one-off build scratch directories.
+tmp/
+.tmp_*/

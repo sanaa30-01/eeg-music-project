@@ -1,9 +1,11 @@
-outcome,model,mae,alpha
-valence,participant-mean baseline,1.149423966143371,
-valence,"ridge (alpha=1.0, untuned)",1.2288956592910647,1.0
-valence,"ridge (tuned, grid to 100)",1.209757788848916,100.0 (all folds)
-valence,"ridge (tuned, grid to 5000)",1.1985569391563944,5000.0 (all folds)
-arousal,participant-mean baseline,0.9190723624568283,
-arousal,"ridge (alpha=1.0, untuned)",1.1086442792991273,1.0
-arousal,"ridge (tuned, grid to 100)",1.0866427196914168,100.0 (all folds)
-arousal,"ridge (tuned, grid to 5000)",1.0931231197685545,"scattered, see note"
+outcome,model,mae,rmse,pearson_r,spearman_rho,alpha
+valence,participant-mean baseline,1.149423966143371,1.4355803893714123,0.23428782692812744,0.19186177397967613,
+valence,"ridge (alpha=1.0, untuned)",1.2288956592910647,1.5127670763634602,-0.10354804010248163,-0.10583291666737481,1.0
+valence,"ridge (tuned, PRIMARY, grid to 100)",1.2162500074309208,1.4970960232060417,-0.1268252044500899,-0.1470773379766114,100.0 (all folds)
+valence,"ridge (tuned, EXPLORATORY, grid to 5000)",1.2004178022095733,,,,5000.0 (all folds)
+valence,"ridge (tuned, leave-one-clip-out)",1.1984607445572275,1.4734986283873384,0.01181408120135657,0.010032826449014931,"grid to 100, per-fold"
+arousal,participant-mean baseline,0.9190723624568283,1.180743518067388,0.46290185796614675,0.4455582343924257,
+arousal,"ridge (alpha=1.0, untuned)",1.1086442792991273,1.3690024306389676,0.04152803719707791,0.0339852063433947,1.0
+arousal,"ridge (tuned, PRIMARY, grid to 100)",1.1071755854628853,1.361775258515495,0.023449997437798232,0.012207342758475364,100.0 (all folds)
+arousal,"ridge (tuned, EXPLORATORY, grid to 5000)",1.088068374242764,,,,"scattered, see notes"
+arousal,"ridge (tuned, leave-one-clip-out)",1.0452558487903,1.2970447328298018,0.22152519072151236,0.1979925482763986,"grid to 100, per-fold"

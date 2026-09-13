@@ -13,11 +13,13 @@ here -- loaded via joblib and only ever .predict()'d.
 """
 
 import hashlib
+import joblib
 import importlib.util
 import sys
 from pathlib import Path
 import soundfile as sf 
 import librosa
+from scipy.stats import pearsonr 
 
 import numpy as np
 import pandas as pd
@@ -185,5 +187,63 @@ def main() -> None:
     print(f"\n[OK] Wrote {len(features_df)} rows to {OUT_FEATURES.relative_to(REPO_ROOT)}")
 
 
-if __name__ == "__main__":
-    main()
+# ============================================================
+# 1. LOAD THE FROZEN STAGE B MODELS -- read-only from here on
+# ============================================================
+valence_model = joblib.load(REPO_ROOT / "data_processed" / "models" / "pmemo_valence_model.joblib")
+arousal_model = joblib.load(REPO_ROOT / "data_processed" / "models" / "pmemo_arousal_model.joblib")
+
+# ============================================================
+# 2. APPLY THEM TO THE 299 TRIMMED ds002721 CLIPS
+# ============================================================
+audio_features = pd.read_parquet(OUT_FEATURES)  # the file you already built
+predictor_cols = [c for c in audio_features.columns if c != "ds002721_stimulus_id"]
+
+# THE actual bridge moment: a model that has never seen ds002721, film
+# soundtracks, or EEG data of any kind, predicting purely from audio
+audio_features["predicted_valence"] = valence_model.predict(audio_features[predictor_cols])
+audio_features["predicted_arousal"] = arousal_model.predict(audio_features[predictor_cols])
+
+predictions = audio_features[["ds002721_stimulus_id", "predicted_valence", "predicted_arousal"]]
+
+# ============================================================
+# 3. BUILD THE REAL, POPULATION-AVERAGE SELF-REPORT PER CLIP
+# ============================================================
+# Same composite definitions as Stage A -- kept identical on purpose, so
+# "valence" means the same thing on both sides of this comparison
+trials = pd.read_parquet("data_processed/trials_ds002721.parquet")
+trials["valence_like_composite"] = trials[["pleasant", "happy", "tender"]].mean(axis=1)
+trials["arousal_like_composite"] = trials[["energetic", "tense", "angry", "fearful"]].mean(axis=1)
+
+clip_level = trials.groupby("ds002721_stimulus_id").agg(
+    actual_valence=("valence_like_composite", "mean"),
+    actual_arousal=("arousal_like_composite", "mean"),
+    n_participants=("participant_id", "nunique"),
+).reset_index()
+
+# ============================================================
+# 4. JOIN PREDICTIONS TO REALITY
+# ============================================================
+bridge = predictions.merge(clip_level, on="ds002721_stimulus_id", how="inner")
+print(f"Clips in bridge analysis: {len(bridge)}")
+
+bridge.to_csv("results/bridge_predictions.csv", index=False)
+
+# ============================================================
+# 5. PRIMARY vs EXPLORATORY SPLIT BY RATER COUNT
+# ============================================================
+# threshold can be debated on
+RATER_THRESHOLD = 5
+
+well_rated = bridge[bridge["n_participants"] >= RATER_THRESHOLD]
+thin = bridge[bridge["n_participants"] < RATER_THRESHOLD]
+
+print(f"\n--- PRIMARY (>={RATER_THRESHOLD} raters, {len(well_rated)} clips) ---")
+for outcome in ["valence", "arousal"]:
+    r, p = pearsonr(well_rated[f"actual_{outcome}"], well_rated[f"predicted_{outcome}"])
+    print(f"  {outcome}: r={r:.3f}, p={p:.4f}")
+
+print(f"\n--- EXPLORATORY (<{RATER_THRESHOLD} raters, {len(thin)} clips) ---")
+for outcome in ["valence", "arousal"]:
+    r, p = pearsonr(thin[f"actual_{outcome}"], thin[f"predicted_{outcome}"])
+    print(f"  {outcome}: r={r:.3f}, p={p:.4f}") 

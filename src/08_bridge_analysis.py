@@ -16,6 +16,8 @@ import hashlib
 import importlib.util
 import sys
 from pathlib import Path
+import soundfile as sf 
+import librosa
 
 import numpy as np
 import pandas as pd
@@ -26,6 +28,8 @@ AUDIO_DIR = REPO_ROOT / "data_raw" / "eerola_soundtracks" / "Set1" # adjust if y
 AUDIT_CSV = REPO_ROOT / "data_raw" / "ds002721_stimulus_audit.csv"
 MANIFEST_PATH = REPO_ROOT / "data_processed" / "models" / "pmemo_model_manifest.yaml"
 OUT_FEATURES = REPO_ROOT / "data_processed" / "audio_features_ds002721.parquet"
+TRIMMED_AUDIO_DIR = REPO_ROOT / "data_raw" / "ds002721_audio_trimmed"
+TARGET_DURATION_SEC = 12.0 
 
 
 def _load_stage_b_extractor():
@@ -42,6 +46,58 @@ def _load_stage_b_extractor():
     spec.loader.exec_module(module)
     return module
 
+def trim_ds002721_clips(audit_csv: Path, source_audio_dir: Path,
+                         trimmed_dir: Path, settings) -> None:
+    """Trim every recovered ds002721 clip to its first 12 seconds.
+
+    Writes trimmed copies to trimmed_dir (originals untouched) and updates
+    the audit CSV's clip_start_sec/clip_end_sec/notes -- filling in fields
+    that were left blank since the original Gate A pass. Clips shorter than
+    the 12s target can't be trimmed to it; these are flagged distinctly
+    rather than silently included at their shorter, mismatched length.
+    """
+    trimmed_dir.mkdir(parents=True, exist_ok=True)
+    audit = pd.read_csv(audit_csv)
+
+    for col in ("clip_start_sec", "clip_end_sec", "trim_status"):
+        if col not in audit.columns:
+            audit[col] = None
+
+    for idx, row in audit[audit["extraction_status"] == "recovered"].iterrows():
+        source_path = source_audio_dir / row["notes"]  # 'notes' holds the mp3 filename
+        if not source_path.exists():
+            continue
+
+        waveform, sr = librosa.load(source_path, sr=settings.sample_rate_hz, mono=settings.mono)
+        original_duration = len(waveform) / sr
+
+        if original_duration < TARGET_DURATION_SEC:
+            # can't trim to 12s -- shorter than the target window. Flag it;
+            # do not silently write a shorter file that would still mismatch
+            # PMEmo's expected clip length.
+            audit.at[idx, "trim_status"] = f"too_short (source={original_duration:.2f}s)"
+            audit.at[idx, "clip_start_sec"] = 0.0
+            audit.at[idx, "clip_end_sec"] = round(original_duration, 2)
+            continue
+
+        n_samples_target = int(TARGET_DURATION_SEC * sr)
+        trimmed_waveform = waveform[:n_samples_target]
+
+        out_path = trimmed_dir / row["notes"]
+        sf.write(out_path, trimmed_waveform, sr)
+
+        audit.at[idx, "trim_status"] = "trimmed_first_12s"
+        audit.at[idx, "clip_start_sec"] = 0.0
+        audit.at[idx, "clip_end_sec"] = TARGET_DURATION_SEC
+
+    audit.to_csv(audit_csv, index=False)
+
+    n_trimmed = (audit["trim_status"] == "trimmed_first_12s").sum()
+    n_too_short = audit["trim_status"].astype(str).str.startswith("too_short").sum()
+    print(f"Trimmed: {n_trimmed}, too short to trim: {n_too_short}")
+    if n_too_short:
+        print(audit[audit["trim_status"].astype(str).str.startswith("too_short")]
+              [["ds002721_stimulus_id", "trim_status"]]) 
 
 def build_ds002721_manifest(audit_csv: Path, audio_dir: Path) -> pd.DataFrame:
     """One row per recovered ds002721 clip: stimulus ID + audio file path."""
@@ -70,7 +126,9 @@ def main() -> None:
     stage_b = _load_stage_b_extractor()
     _audio_config, settings = stage_b.load_audio_config()
 
-    ds_manifest = build_ds002721_manifest(AUDIT_CSV, AUDIO_DIR)
+    trim_ds002721_clips(AUDIT_CSV, AUDIO_DIR, TRIMMED_AUDIO_DIR, settings) 
+
+    ds_manifest = build_ds002721_manifest(AUDIT_CSV, TRIMMED_AUDIO_DIR)
     print(f"Extracting features for {len(ds_manifest)} ds002721 clips...")
 
     rows, durations, failures = [], [], []

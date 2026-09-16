@@ -2,149 +2,149 @@
 
 **Auditing audio-only emotion predictions against EEG and self-reports**
 
-## Research question
+A two-person research project testing whether an audio-only model trained on one induced-emotion music dataset (PMEmo) agrees with population-average self-report and EEG correlates of induced emotion in a separate, independent dataset (OpenNeuro ds002721).
 
-Can an audio-only model trained on an accessible induced-emotion music dataset
-(PMEmo) predict population-level valence and arousal ratings for separate
-music excerpts, and do those predictions agree with independent self-report
-and EEG evidence (OpenNeuro ds002721)?
+## What this project found:
 
-See `configs/analysis_plan.yaml` for the full preregistration: hypotheses,
-primary/secondary outcomes, exclusions, and the exact claim language this
-project is allowed to make.
+An audio-only Ridge/Elastic Net model trained on PMEmo's 767 labelled tracks achieved strong internal validity (concordance correlation 0.68 for valence, 0.83 for arousal, under grouped nested cross-validation). Applied to 299 correctly-trimmed ds002721 film-music clips, its predictions showed **no reliable relationship** with real listeners' self-reported valence or arousal in that separate dataset — a robust, bootstrap- and permutation-confirmed null result. Separately, EEG band-power and frontal asymmetry features did not predict ds002721 participants' own self-reports under leave-one-participant-out evaluation, though two statistically distinguishable (bootstrap CI excludes zero) patterns emerged under secondary tests: a small negative EEG-valence relationship under leave-one-participant-out, and a small positive EEG-arousal relationship under leave-one-clip-out. See [Results] and [Limitations] below for the full explanation.
 
-**Current implemented scope:** PMEmo audio feature extraction and PMEmo static
-valence/arousal model fitting are complete. ds002721, EEG integration, and the
-bridge analysis are deferred. See
-[`PMEMO_STAGES_5_6_DELIVERABLES.md`](PMEMO_STAGES_5_6_DELIVERABLES.md) for the
-concise handoff and exact retained artifacts.
+## What this project does not claim
 
-**Scope, one line:** this project does not claim music has a universal
-emotional effect, that perceived emotion equals felt emotion, or that EEG
-"validates" an emotion model. Its strongest possible conclusion is about
-construct-level agreement between an audio model and population-average
-self-report/EEG correlates in a separate dataset. See "What we will not
-claim" below before writing anything up.
+- That the model predicts what any individual will feel
+- That audio features cause EEG changes
+- That a song has one true emotional effect
+- That a model trained on perceived emotion predicts induced emotion
+- That EEG validates an emotion model clinically or universally
 
-## Team roles (adjust names)
+The allowed claim, stated precisely:
 
-- pipeline/ML: repo, environment, PMEmo audio modeling, stats,
-  reproducibility.
-- EEG/cognitive science: ds002721 methods, EEG QC, self-report
-  construct definitions, interpretation and write-up.
-- Joint: the Day 4 audio-audit gate decision, model selection sign-off,
-  limitations section.
+> An audio-only model trained on PMEmo's crowd-aggregated induced valence–arousal labels showed no reliable agreement with population-average induced-affect ratings in a separate EEG music-listening dataset, and EEG spectral features showed limited, direction-specific associations with self-reported affect in that same dataset.
+
+
+
+## Repository structure
+
+```
+├── README.md                       (this file)
+├── LICENSE                         (code license — NOT a license for the datasets)
+├── environment.yml / requirements.txt
+├── configs/
+│   ├── analysis_plan.yaml          preregistered hypotheses, outcomes, exclusions, decisions
+│   ├── features.yaml               EEG + audio feature definitions
+│   └── splits.yaml                 cross-validation protocol for every analysis
+├── data_raw/                       gitignored — see Data access below
+│   └── README_access.md            how to obtain every dataset used here
+├── src/
+│   ├── 01_audit_data.py            PMEmo metadata check; ds002721 stimulus audit
+│   ├── 02_build_ds002721_trials.py builds one row per participant x clip
+│   ├── 03_preprocess_eeg.py        filter, epoch, reject artefacts, save per-participant
+│   ├── 04_extract_eeg_features.py  band power + frontal asymmetry
+│   ├── 05_extract_audio_features.py  293 handcrafted audio features (PMEmo + ds002721)
+│   ├── 06_train_pmemo_models.py    Stage B: grouped nested CV, freezes the winning models
+│   ├── 07_stage_a_models.py        Stage A: EEG -> self-report modeling (H1)
+│   ├── 08_bridge_analysis.py       applies frozen Stage B model to ds002721 (H3)
+│   ├── 09_bootstrap_metrics.py     bootstrap CIs + permutation tests for both stages
+│   └── 10_make_figures.py          final figures/tables for the report
+├── notebooks/                      exploratory QC/audit notebooks
+├── results/                        small CSV outputs (committed) + figures (gitignored)
+└── reports/figures, reports/tables (generated by 10_make_figures.py)
+
+```
+
+
 
 ## Setup
 
 ```bash
-# Conda (recommended)
-conda env create -f environment.yml
-conda activate music-eeg-affect
+git clone <repo-url>
+cd eeg-music-project
+conda env create -f environment.yml && conda activate music-eeg-affect
+# or: python3.11 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 
-# or pip
-python3.11 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
 ```
 
-Freeze the environment once it's working:
+
+
+## Data access
+
+**No raw audio or raw EEG is stored in this repository** — `data_raw/`, `data_interim/`, and most of `data_processed/` are gitignored, by design and by the terms of the datasets involved. Full instructions for obtaining everything yourself are in `data_raw/README_access.md`. Short version:
+
+
+| Dataset                                                               | What it's for                                                               | Access                                                           |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| [OpenNeuro ds002721](https://openneuro.org/datasets/ds002721)         | EEG + self-report ratings, 31 participants                                  | Open; download via `openneuro-py`                                |
+| [Eerola & Vuoskoski (2011) Soundtracks corpus](https://osf.io/nmr6w/) | The actual audio ds002721 clips reference (not included in ds002721 itself) | Public archive (OSF mirror; original JYU host may be unreliable) |
+| [PMEmo](https://github.com/HuiZhangDB/PMEmo)                          | Audio-only model training (794 chorus excerpts, 767 labelled)               | Public; audio hosted on Google Drive, linked from that repo      |
+
+
+
+
+## Running the pipeline
+
+Scripts are numbered in the order they should be run. Each reads from `configs/*.yaml` rather than hardcoded values.
 
 ```bash
-pip freeze > requirements.lock.txt   # commit this alongside requirements.txt
-```
-
-Global random seed for every script: **2026**. Every train/test split gets
-saved to `data_processed/splits/` — never regenerate a split silently.
-
-## Getting the data
-
-**You must obtain all three datasets yourself — no raw audio or raw EEG is
-stored in this repository.** Full instructions, links, licenses, and exactly
-what you're looking for are in [`data_raw/README_access.md`](data_raw/README_access.md).
-
-Short version:
-1. OpenNeuro **ds002721** — EEG + self-reports, openly downloadable, but the
-   40 film-music audio clips are **not** included. Getting the matching audio
-   is the single biggest risk in this project — see Gate A below.
-2. **PMEmo** — 794 chorus excerpts + induced valence/arousal labels, ~1.3GB,
-   hosted on Google Drive (linked from the PMEmo GitHub repo).
-3. **DEAM** (optional, external benchmark only) — Creative Commons audio +
-   perceived valence/arousal annotations.
-
-## Gate A — the audio-access audit (do this by Day 4, before anything else)
-
-Before writing any modeling code, audit whether the 40 ds002721 film-music
-clips can actually be recovered as playable audio:
-
-```bash
+# Gate A: confirm audio can be recovered and matched (see Key discoveries below)
 python src/01_audit_data.py --check-pmemo --init-ds002721-audit
-```
 
-This (a) sanity-checks that PMEmo metadata loaded correctly, and (b) creates/
-validates `data_raw/ds002721_stimulus_audit.csv`, which you then fill in by
-hand: one row per clip, with source URL, license/terms, clip timing,
-checksum, and extraction status.
+# Stage A (EEG side)
+python src/02_build_ds002721_trials.py
+python src/03_preprocess_eeg.py
+python src/04_extract_eeg_features.py
+python src/07_stage_a_models.py
 
-**Decision rule:**
-- **≥32 / 40 clips** recoverable → proceed with the direct Stage A ↔ Stage B
-  bridge as planned.
-- **<32 / 40** → keep Stage A (EEG/self-report) and Stage B (PMEmo audio
-  model) as independent analyses; downgrade the bridge claim to a
-  construct-level comparison, not direct model-to-EEG validation.
+# Stage B (audio side) — independent of Stage A, can run in parallel
+python src/05_extract_audio_features.py --overwrite
+python src/06_train_pmemo_models.py --overwrite
 
-Record the go/no-go decision itself (not just the CSV) — it's a required
-Week 1 deliverable.
-
-## Pipeline (run order)
+# Bridge — requires both stages complete
+python src/08_bridge_analysis.py
+python src/09_bootstrap_metrics.py
+python src/10_make_figures.py
 
 ```
-01_audit_data.py            Gate A: PMEmo metadata check + ds002721 audit scaffold
-02_build_ds002721_trials.py One row per participant × clip, from BIDS events/ratings
-03_preprocess_eeg.py        Filter, epoch, artefact-reject (see configs/features.yaml)
-04_extract_eeg_features.py  Predeclared band-power + frontal asymmetry features
-05_extract_audio_features.py PMEmo audio features (ds002721 currently deferred)
-06_train_pmemo_models.py    Dummy/Ridge/Elastic Net/SVR; optional Random Forest
-07_stage_a_models.py        EEG → self-report regression, leave-one-participant-out
-08_bridge_analysis.py       Apply frozen PMEmo model to ds002721 clips; compare
-09_bootstrap_metrics.py     Bootstrap CIs, permutation tests, FDR correction
-10_make_figures.py          Final tables and figures
-```
 
-Each script reads its settings from `configs/*.yaml` rather than hardcoded
-values — edit the configs, not the scripts, when changing features or splits.
 
-## What we will not claim
 
-The final result should be phrased at the level of:
+## Key discoveries during this project (worth knowing before reading the results)
 
-> "An audio-only model trained on PMEmo's crowd-aggregated induced
-> valence–arousal labels showed [degree of] agreement with population-average
-> induced-affect ratings in a separate EEG music-listening dataset, and these
-> ratings had [degree of] association with a predeclared set of EEG spectral
-> features."
+The original project plan assumed each of the 40 stimulus clips was shared across all 31 ds002721 participants. **This is not what the data shows.** Auditing the actual event codes revealed a pool of **307 unique clips**, with each participant hearing a random draw of ~40, median 2 raters per clip. This materially changes what "population-average self-report" can mean per clip — see [Limitations].
 
-Not:
-- "The model predicts what any individual will feel."
-- "Audio features cause EEG changes."
-- "A song has one true emotional effect."
-- "A model trained on perceived emotion predicts induced emotion."
-- "EEG validates an emotion model clinically or universally."
+ds002721 does not include its own audio; the dataset's event codebook points to the Eerola & Vuoskoski (2011) film-soundtrack corpus, recovered here via a public OSF mirror after the originally-cited host went offline. Source files vary in length (10–37s); since no end-of-music event code exists, all recovered clips were trimmed to a documented, uniform first-12-second window rather than an individually-verified original excerpt.
 
-## Status
+## Results
 
-- [x] Repository structure and base environment files created
-- [ ] Environment version-pinned and analysis plan frozen (`configs/analysis_plan.yaml`)
-- [ ] Gate A audit complete — mapping/checksums/timing verified and go/no-go decided
-- [ ] Stage A (EEG) models final — an initial provisional run exists, but specification corrections remain
-- [x] Stage B (PMEmo) features and models fit, validated, and frozen
-- [ ] Bridge analysis complete
-- [ ] Report drafted
+**Stage A — EEG → self-report (H1):** Not supported under the primary leave-one-participant-out test, for either valence or arousal, using a properly scaled Ridge model tuned on the preregistered alpha grid. Two secondary, bootstrap-CI-confirmed non-null patterns: a small negative EEG–valence correlation under LOPO (r=-0.127, 95% CI [-0.239, -0.019]), and a small positive EEG–arousal correlation under leave-one-clip-out (r=0.222, 95% CI [0.158, 0.284]). Full table: `results/stage_a_model_comparison.csv`, `results/stage_a_metrics_with_ci.csv`.
 
-The mathematics/programming work, current evidence, known specification
-corrections, and next executable milestones are tracked in
-[`MODEL_FITTING_PROGRESS.md`](MODEL_FITTING_PROGRESS.md). Update that file as
-milestones change rather than marking a script complete merely because it
-exists.
+**Stage B — audio-only PMEmo models:** Strong internal validity. Ridge (valence) and Elastic Net (arousal) selected by nested grouped CV, pooled out-of-fold CCC of 0.68 and 0.83 respectively. Full table: `results/pmemo_model_comparison.csv`.
 
-The compact Stage 5–6 deliverable inventory and reproduction commands are in
-[`PMEMO_STAGES_5_6_DELIVERABLES.md`](PMEMO_STAGES_5_6_DELIVERABLES.md).
+**H3 — the bridge:** Not supported. All four correlations (primary/exploratory rater-coverage subsets x valence/arousal) have bootstrap 95% CIs comfortably containing zero and non-significant permutation p-values (p≥0.19). This is a robust null, not merely a small point estimate. Full table: `results/bridge_metrics_with_ci.csv`.
+
+The secondary H3 EEG-linkage test (comparing bridge predictions against EEG features specifically) was not conducted, since H1 found no reliable EEG–arousal relationship under LOPO to build it on.
+
+## Limitations & ethical use
+
+- **Sample representativeness:** 31 ds002721 participants, likely a WEIRD-population sample per the source dataset's own demographics. No cultural generalization is claimed.
+- **Participant exclusions:** sub-29 excluded entirely (0/40 epochs survived artefact rejection). sub-02 retained despite severe loss (3/36 epochs, 91.7% loss) — flagged explicitly rather than treated as equally reliable.
+- **Stimulus coverage:** clips are a random ~40-per-participant draw from a 307-clip pool, not a shared fixed set. Median 2 raters per clip; 117/307 clips have exactly 1 rater. The bridge analysis splits into primary (≥5 raters, 76 clips) and exploratory (<5 raters, 223 clips) subsets so single-rater "averages" are never treated as population estimates.
+- **Audio provenance:** ds002721 audio was recovered via cross-referencing event codes against the Eerola & Vuoskoski corpus (arithmetic mapping, verified by exact filename match) — 307/307 codes matched successfully.
+- **Clip duration assumption:** all recovered clips were trimmed to a uniform first-12-second window; this is a documented assumption, not a verified match to the exact original excerpt boundaries (no end-of-music event code exists in the source data to recover this precisely). 8/307 clips were shorter than 12 seconds and excluded rather than force-included at a mismatched length.
+- **EEG feature scope:** 13-channel montage (2 channels dropped for consistently poor signal quality, confirmed via visual inspection of one participant and generalized to all 31 without individual re-verification), 3 broad frequency bands, linear models only. Two frontal channels (FP1/FP2) were excluded specifically from the artefact-rejection amplitude check (not from the features themselves) because ordinary eye blinks there were otherwise causing most trials to be discarded.
+- **Sign-convention check:** the frontal alpha asymmetry feature's fitted Ridge coefficient was checked directly across cross-validation folds and found directionally consistent with established theory, ruling out a sign-convention coding error as the explanation for the negative EEG–valence result reported above. The full explanation across all 10 EEG features was not pursued further.
+- **Secondary outcomes incomplete:** the 8 individual self-report ratings (beyond the 2 primary composites) were not modeled, and the planned Benjamini–Hochberg FDR correction across them has not been performed.
+- **Non-clinical, non-causal:** no individual-level, diagnostic, or causal claims are made anywhere in this project. All results are associational. An audio–EEG–self-report correlation does not establish a mechanism.
+- **Data/licensing:** no raw audio or raw EEG is redistributed anywhere in this repository. PMEmo and the Eerola & Vuoskoski corpus are used under their respective research-use terms; see `data_raw/README_access.md` for exact citations and terms.
+
+
+
+## Reading list
+
+1. Daly, I., Nicolaou, N., Williams, D., Hwang, F., Kirke, A., Miranda, E., & Nasuto, S. J. (2020). Neural and physiological data from participants listening to affective music. *Scientific Data*, 7. [10.1038/s41597-020-0507-6](https://doi.org/10.1038/s41597-020-0507-6) — the ds002721 dataset paper.
+2. Eerola, T., & Vuoskoski, J. K. (2011). A comparison of the discrete and dimensional models of emotion in music. *Psychology of Music*, 39(1), 18–49. — source of the film-soundtrack stimulus corpus ds002721 draws from.
+3. Zhang, K. et al. PMEmo dataset paper and repository — source of the induced valence/arousal labels used to train Stage B.
+
+
+
+## License
+
+Code in this repository is released under the MIT License (see `LICENSE`). This does **not** extend to the third-party datasets referenced here (ds002721, PMEmo, the Eerola & Vuoskoski corpus) — each retains its own license and terms, described in `data_raw/README_access.md`. Do not redistribute raw audio or raw EEG through this repository.

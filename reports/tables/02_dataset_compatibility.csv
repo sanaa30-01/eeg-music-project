@@ -1,0 +1,4 @@
+dataset,construct,role,actual_scale
+OpenNeuro ds002721,Induced/felt emotion,Stage A; audio recovered via Gate A for bridge,"31 participants, 307-clip pool (~40/person, randomly drawn)"
+PMEmo,Induced/felt emotion,Stage B training + internal validation,"794 tracks, 767 with static valence/arousal labels"
+DEAM,Perceived emotion,"Not used -- deferred, per team scope decision",N/A

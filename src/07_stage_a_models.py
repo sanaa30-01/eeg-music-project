@@ -364,6 +364,55 @@ def loco_ridge_tuned(df: pd.DataFrame, outcome_col: str,
     return predictions
 
 
+def lopo_ridge_diagnostic(df: pd.DataFrame, outcome_col: str, feature_of_interest: str,
+                           alphas=(0.1, 1.0, 10.0, 100.0), n_inner_splits=5) -> np.ndarray:
+    """Same procedure as lopo_ridge_tuned, but instead of returning
+    predictions, records the fitted Ridge coefficient for ONE specific
+    feature, per outer fold. Scaling (StandardScaler) rescales magnitude
+    but never flips sign, so the sign of this coefficient is trustworthy
+    evidence of which DIRECTION the model believes this feature relates
+    to the outcome -- independent of how well the model performs overall.
+    """
+    feature_idx = feature_cols.index(feature_of_interest)
+    coefficients = []
+    participants = df["participant_id"].unique()
+
+    for held_out in participants:
+        train_mask = df["participant_id"] != held_out
+        test_mask = df["participant_id"] == held_out
+        train_df = df.loc[train_mask]
+
+        groups = train_df["participant_id"].values
+        n_splits = min(n_inner_splits, train_df["participant_id"].nunique())
+        inner_cv = GroupKFold(n_splits=n_splits)
+
+        pipeline = Pipeline([
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler()),
+            ("model", Ridge()),
+        ])
+        search = GridSearchCV(
+            pipeline,
+            param_grid={"model__alpha": list(alphas)},
+            scoring="neg_mean_absolute_error",
+            cv=inner_cv,
+        )
+        search.fit(train_df[feature_cols], train_df[outcome_col], groups=groups)
+
+        fitted_ridge = search.best_estimator_.named_steps["model"]
+        coefficients.append(fitted_ridge.coef_[feature_idx])
+
+    return np.array(coefficients)
+
+
+valence_asymmetry_coefs = lopo_ridge_diagnostic(data, "valence_like_composite", "frontal_alpha_asymmetry")
+print(f"frontal_alpha_asymmetry coefficient for VALENCE, across 30 LOPO folds:")
+print(f"  Positive in {(valence_asymmetry_coefs > 0).sum()}/30 folds")
+print(f"  Negative in {(valence_asymmetry_coefs < 0).sum()}/30 folds")
+print(f"  Mean: {valence_asymmetry_coefs.mean():.4f}, std: {valence_asymmetry_coefs.std():.4f}")
+print(valence_asymmetry_coefs)
+
+
 # NOTE: 307 outer folds (one per unique clip), each running a full inner
 # grid search -- this will take noticeably longer than the 30-fold LOPO
 # runs above. 
@@ -413,3 +462,8 @@ results_table = pd.DataFrame([
 
 results_table.to_csv("results/stage_a_model_comparison.csv", index=False)
 print(results_table) 
+
+# save the full prediction table so 09_bootstrap_metrics.py can load it
+# fresh, without needing to re-run the (slow) modeling above
+data.to_parquet("data_processed/stage_a_predictions.parquet", index=False)
+print(f"[OK] Saved full prediction table ({len(data)} rows) to data_processed/stage_a_predictions.parquet")
